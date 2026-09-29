@@ -5,24 +5,32 @@ format: html
 editor: visual
 ---
 
-```{r}
-install.packages("tidyverse")
-library(tidyverse)
+### Install Packages, Library functions
 
+```{r}
+#install.packages("tidyverse")
+#install.packages("plyr")
+library(tidyverse)
 library(readxl)
+library(plyr)
+
 
 Survival_HeightApril26Blocks7_6Clean <- read_excel("Oak Project/Data/Survival_HeightApril26Blocks7&6Clean.xlsx", 
-                                                   sheet = "Input1", skip = 1)
-View(Survival_HeightApril26Blocks7_6Clean)
+                                                   sheet = "Input1", skip = 1,
+                                                   na="NA")
+#View(Survival_HeightApril26Blocks7_6Clean)
 
 names(Survival_HeightApril26Blocks7_6Clean)
 
 ```
 
+### Renaming columns of April data sheet
+
 ```{r}
+#renaming the columns, add dyplr to rename because for some reason it won't work without it
 Survival_HeightApril26Blocks7_6Clean <-
   Survival_HeightApril26Blocks7_6Clean |> 
-  rename(Page_Num ="Page #",
+  dplyr::rename(Page_Num ="Page #",
          Date ="MM/DD/YYYY", 
         Recorder ="Name",
        Block  ="#...4",
@@ -40,4 +48,113 @@ Survival_HeightApril26Blocks7_6Clean <-
          )
 ```
 
-The `echo: false` option disables the printing of code (only output is displayed).
+### Convert columns to numeric
+
+```{r}
+#mutating the character columns to numeric
+glimpse(Survival_HeightApril26Blocks7_6Clean)
+Survival_HeightApril26Blocks7_6Clean <-
+Survival_HeightApril26Blocks7_6Clean |> 
+  mutate(Seedling_Ht_cm=as.numeric(Seedling_Ht_cm)) |> 
+  mutate(Num_leaves=as.numeric(Num_leaves)) |> 
+  mutate(Num_dead_leaves=as.numeric(Num_dead_leaves)) |> 
+  mutate(Leaf_greenness=as.numeric(Leaf_greenness)) |> 
+  mutate(Num_germinated=as.numeric(Num_germinated)) |> 
+  mutate(RCD=as.numeric(RCD))
+
+  
+
+```
+
+### Import remaining Oak files
+
+```{r}
+#importing the oak data files into session
+
+oak_data <- list.files(path="Oak Project/Data",
+                       
+                       pattern="*6Clean.xlsx",
+                       
+                       full.names=TRUE) |> 
+  
+  lapply(read_excel,
+         
+         na="NA",sheet="Input1", skip=1 ) |> 
+  bind_rows()
+
+oak_data
+
+view(oak_data)
+```
+
+### Rename Columns of Oak files
+
+```{r}
+oak_data <-
+  oak_data |> 
+  dplyr::rename(Page_Num ="Page #",
+                Date ="MM/DD/YYYY", 
+                Recorder ="Name",
+                Block  ="#...4",
+                Tag_Num   ="#...5",
+                Oak_type  ="NR, S, or A",
+                Treatment ="AC, OA, NP, DT, or DL",
+                OA_microclimate    ="TH, TI, CN",
+                Seedling_Ht_cm  ="(cm)",
+                Num_leaves ="#...10",
+                Num_dead_leaves  ="#...11",
+                Leaf_greenness ="%",
+                Num_germinated ="#...13",
+                RCD  = "(mm)",
+                Notes  ="as written on data sheet"
+  )
+```
+
+```{r}
+glimpse(oak_data)
+oak_data <-
+  oak_data |> 
+  mutate(Seedling_Ht_cm=as.numeric(Seedling_Ht_cm)) |> 
+  mutate(Num_leaves=as.numeric(Num_leaves)) |> 
+  mutate(Num_dead_leaves=as.numeric(Num_dead_leaves)) |> 
+  mutate(Leaf_greenness=as.numeric(Leaf_greenness)) |> 
+  mutate(Num_germinated=as.numeric(Num_germinated)) |> 
+  mutate(RCD=as.numeric(RCD))
+
+oak_data
+```
+
+```{r}
+#splitting tag number and acorn number into separate columns
+oak_data_CLEAN<- 
+  oak_data |> 
+  separate(Tag_Num, into = c("Tag_Num", "Acorn_Num"), sep="A") |> 
+  mutate(Tag_Num=as.numeric(Tag_Num),
+         Acorn_Num=as.numeric(Acorn_Num)) |> 
+  mutate(Leaf_greenness=as.numeric(Leaf_greenness),
+         Dead = case_when(
+           Seedling_Ht_cm==0~"Dead",
+           Seedling_Ht_cm>0~"Alive"
+         ))
+
+oak_data_CLEAN
+
+
+```
+
+```{r}
+oak_data_CLEAN |> 
+  select(Tag_Num, Acorn_Num) |> 
+  distinct() |> 
+  arrange(Tag_Num)
+
+Acorn_ID_Table<- oak_data_CLEAN |> 
+    select(Tag_Num) |> 
+    arrange(Tag_Num) |> 
+  mutate(Acorn1=1, Acorn2=2, Acorn3=3) |> 
+  pivot_longer(
+    cols=c(Acorn1, Acorn2, Acorn3),
+    names_to = "Whatever",
+    values_to = "Acorn_Num" |> 
+      select(-Whatever))
+```
