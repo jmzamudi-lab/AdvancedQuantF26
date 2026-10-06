@@ -19,7 +19,7 @@ library(ggplot2)
 Survival_HeightApril26Blocks7_6Clean <- read_excel("Oak Project/Data/Survival_HeightApril26Blocks7&6Clean.xlsx", 
                                                    sheet = "Input1", skip = 1,
                                                    na="NA")
-#View(Survival_HeightApril26Blocks7_6Clean)
+View(Survival_HeightApril26Blocks7_6Clean)
 
 names(Survival_HeightApril26Blocks7_6Clean)
 
@@ -150,13 +150,13 @@ View(oak_data_CLEAN)
 
 ```{r}
 #seedling height
-seedling_summary <- 
-  oak_data_CLEAN |>
-  select(Treatment, OA_microclimate, Seedling_Ht_cm) |> 
-  group_by(OA_microclimate) |> 
-  summarize(
-            n= n(),
-            MeanSeedHeight = mean(Seedling_Ht_cm))
+#seedling_summary <- 
+  #oak_data_CLEAN |>
+ # select(Treatment, OA_microclimate, Seedling_Ht_cm) |> 
+ # group_by(OA_microclimate) |> 
+ # summarize(
+        #    n= n(),
+         #   MeanSeedHeight = mean(Seedling_Ht_cm))
 
 #ggplot(OA_microclimate)
 #aes(x = Microclimate)
@@ -230,7 +230,8 @@ germ_rate_data <-
   oak_data_CLEAN |> 
     select(Date, Tag_Num, Acorn_Num, Oak_type, Treatment, OA_microclimate, Seedling_Ht_cm, Num_germinated) |> 
   filter( Oak_type != "NR") |> 
-  filter(Seedling_Ht_cm > 0)
+  filter(Seedling_Ht_cm > 0) |> 
+  filter( Oak_type != "S")
 
 #organizing dates to get only the latest data entry for each tag number and acorn entry
 
@@ -249,23 +250,15 @@ germination_rate <-
   
 ```
 
-### Dead Tree data Acorn and seedling
+### Germination Rate for Acorns
 
 ```{r}
-#labeling dead trees in germ rate data, in data sheet any NA value in num_germinated is a dead tree
-dead_tree_data <-
-  germ_rate_data |> 
+#germination rate NA to O value
+germination_rate |> 
   mutate(
-    Num_germinated = replace_na(as.character(Num_germinated),"Dead")) |> 
-  mutate(Num_germinated=
-           case_when(Num_germinated %in% c("1", "2", "3") ~"Germination Present",
-                     Num_germinated == 0 ~ "No Germination Present",
-                     TRUE~ as.character(Num_germinated)))
-
-ggplot(dead_tree_data)+
-  aes(x= Num_germinated)+
-  geom_bar()
+    germination_rate$germ_rate[is.na(germination_rate$germ_rate)]<- 0
   
+    
 #Organizing dead and germinated rate into bar graph for treatment types:
 
 #replacing NA values with "dead" 
