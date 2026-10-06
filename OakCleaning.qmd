@@ -143,13 +143,12 @@ oak_data_CLEAN<-
            Seedling_Ht_cm>0~"Alive"
          ))
 
-oak_data_CLEAN
+View(oak_data_CLEAN)
 
 
 ```
 
 ```{r}
-unloadNamespace("plyr")
 #seedling height
 seedling_summary <- 
   oak_data_CLEAN |>
@@ -165,10 +164,13 @@ seedling_summary <-
 ```
 
 ```{r}
-oak_data_CLEAN |> 
-  select(Tag_Num, Acorn_Num) |> 
-  distinct() |> 
-  arrange(Tag_Num)
+#oak_data_CLEANER<-
+#oak_data_CLEAN |> 
+ # select(Tag_Num, Acorn_Num) |> 
+  #distinct() |> 
+  #arrange(Tag_Num)
+
+#view(oak_data_CLEANER)
 
 #Acorn_ID_Table<- oak_data_CLEAN |> 
 #    select(Tag_Num) |> 
@@ -218,8 +220,101 @@ All 4 responses:
 ### Germination Rate
 
 ```{r}
+#treatement is that DT AC OA thing
+#cleaning germination rate data: each tag once?, last time only?, exclude NRs only Acorns NOT OCT 2025
+unloadNamespace("plyr")
 
-oak_data_CLEAN |> 
-  select(OA_microclimate)
+#created a data set for germination rate and cleaned data: selected only necessary columns, dropped all values of oak type labeled as NR because we are only looking at acorns and seedlings, looking at only plants that actually grew
 
+germ_rate_data <-
+  oak_data_CLEAN |> 
+    select(Date, Tag_Num, Acorn_Num, Oak_type, Treatment, OA_microclimate, Seedling_Ht_cm, Num_germinated) |> 
+  filter( Oak_type != "NR") |> 
+  filter(Seedling_Ht_cm > 0)
+
+#organizing dates to get only the latest data entry for each tag number and acorn entry
+
+germ_rate_data_latest <-
+  germ_rate_data|>
+  group_by(Tag_Num, Acorn_Num) |> 
+  arrange(desc(Date)) |> 
+  slice(1) |> 
+  ungroup()
+
+#calculating the germination rate with the latest entries
+germination_rate <-
+  germ_rate_data_latest |> 
+  group_by(Tag_Num, Acorn_Num) |>
+  mutate(germ_rate = (Num_germinated/3)*100)
+  
+```
+
+### Dead Tree data Acorn and seedling
+
+```{r}
+#labeling dead trees in germ rate data, in data sheet any NA value in num_germinated is a dead tree
+dead_tree_data <-
+  germ_rate_data |> 
+  mutate(
+    Num_germinated = replace_na(as.character(Num_germinated),"Dead")) |> 
+  mutate(Num_germinated=
+           case_when(Num_germinated %in% c("1", "2", "3") ~"Germination Present",
+                     Num_germinated == 0 ~ "No Germination Present",
+                     TRUE~ as.character(Num_germinated)))
+
+ggplot(dead_tree_data)+
+  aes(x= Num_germinated)+
+  geom_bar()
+  
+#Organizing dead and germinated rate into bar graph for treatment types:
+
+#replacing NA values with "dead" 
+dead_germ_data<-
+  germination_rate|> 
+  mutate(
+    germ_rate = replace_na(as.character(germ_rate),"Dead"))
+
+#plotting the dead trees with the treatment as fill in bar graph
+dead_germ_treatment<-
+dead_germ_data |> 
+  ggplot(aes(germ_rate, fill= Treatment))+
+  geom_bar()
+plot(dead_germ_treatment)
+  
+#organizing dead and germinated rate of microclimate of OA treatment
+
+# first select only OA treatment, then plot germ rate with microclimate 
+
+OA_microclimate_germ<-
+  dead_germ_data |> 
+  drop_na(OA_microclimate) |> 
+  ggplot(aes(germ_rate, fill= OA_microclimate))+
+  geom_bar()
+plot(OA_microclimate_germ)
+
+#after seeing the results, did they put NA for microclimate if the treat was dead, if so why? we could still analyze what that data means
+
+#plotting open area trees that are all over 0cm, this one does not work for some dumb reason
+OA_Death_Microclimate<-
+dead_germ_data |> 
+  filter(Treatment == "OA") |> 
+  ggplot(aes(fill= OA_microclimate))+
+  geom_bar()
+
+
+```
+
+### Germination Rate and Micro-climate data exploration
+
+```{r}
+#looking at germination rate trends in a bar graph? helpful? idek. This is acorns only, when fill=Oak_type only Acorn present
+germination_rate |> 
+ggplot(aes(germ_rate, fill = Treatment)) +
+  geom_bar()
+
+#looking at germination rate trends in a bar graph? helpful? idek. acorns only, where fill is the germinations rate and they are separated by treatment type
+gr_height<- 
+  ggplot(germination_rate, aes(x= germ_rate, y= Seedling_Ht_cm))+
+           geom_point()
+plot(gr_height)
 ```
