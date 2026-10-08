@@ -69,7 +69,6 @@ Survival_HeightApril26Blocks7_6Clean |>
 
 ```{r}
 
-
 ```
 
 ### Import remaining Oak files
@@ -91,6 +90,46 @@ oak_data <- list.files(path="Oak Project/Data",
 oak_data
 
 view(oak_data)
+```
+
+### Importing October Data
+
+```{r}
+Survival_Oct2025 <- read_excel("Oak Project/Data/Survival_HeightOct2025Clean.xlsx", 
+                                                 sheet = "Input1", skip = 1,
+                                                   na="NA")
+
+```
+
+### Rename Oct 2025 columns
+
+```{r}
+#renaming columns of october oak data
+Survival_Oct2025 <-
+  Survival_Oct2025 |> 
+  dplyr::rename(Page_Num ="Page #",
+                Date ="MM/DD/YYYY", 
+                Recorder ="Code",
+                Block  ="#...4",
+                Tag_Num   ="#...5",
+                Oak_type  ="NR, S, or A",
+                Treatment ="AC, OA, SA, NP, or DT",
+                Seedling_Ht_cm  ="(cm)...8",
+                
+  )
+view(Survival_Oct2025)
+
+#selecting only the columns that match with the rest of the data being analyzed, mutating as numeric for select columns, splitting tag and acorn number
+october_clean<-
+  Survival_Oct2025 |> 
+  select(Page_Num, Date, Recorder, Block, Tag_Num, Oak_type, Treatment, Seedling_Ht_cm) |> 
+  mutate(Seedling_Ht_cm=as.numeric(Seedling_Ht_cm)) |> 
+  mutate(Tag_Num=as.character(Tag_Num)) |> 
+  separate(Tag_Num, into = c("Tag_Num", "Acorn_Num"), sep="A") |> 
+  mutate(Tag_Num=as.numeric(Tag_Num),
+         Acorn_Num=as.numeric(Acorn_Num)) 
+
+glimpse(october_clean)
 ```
 
 ### Rename Columns of Oak files
@@ -149,38 +188,14 @@ View(oak_data_CLEAN)
 ```
 
 ```{r}
-#seedling height
-#seedling_summary <- 
-  #oak_data_CLEAN |>
- # select(Treatment, OA_microclimate, Seedling_Ht_cm) |> 
- # group_by(OA_microclimate) |> 
- # summarize(
-        #    n= n(),
-         #   MeanSeedHeight = mean(Seedling_Ht_cm))
+#joining all data together to see if it gives me anymore information, oakdata and october data
+#view(october_clean)
 
-#ggplot(OA_microclimate)
-#aes(x = Microclimate)
-#geom_bar()
+#all_data<-rbind(october_clean,oak_data_CLEAN)
 ```
 
 ```{r}
-#oak_data_CLEANER<-
-#oak_data_CLEAN |> 
- # select(Tag_Num, Acorn_Num) |> 
-  #distinct() |> 
-  #arrange(Tag_Num)
 
-#view(oak_data_CLEANER)
-
-#Acorn_ID_Table<- oak_data_CLEAN |> 
-#    select(Tag_Num) |> 
-#    arrange(Tag_Num) |> 
-#  mutate(Acorn1=1, Acorn2=2, Acorn3=3) |> 
-#  pivot_longer(
-#    cols=c(Acorn1, Acorn2, Acorn3),
-#    names_to = "Whatever",
-#    values_to = "Acorn_Num" |> 
-#      select(-Whatever))
 ```
 
 Q. Effect of treatment:
@@ -233,6 +248,9 @@ germ_rate_data <-
   filter(Seedling_Ht_cm > 0) |> 
   filter( Oak_type != "S")
 
+#remove NA from data????
+
+  
 #organizing dates to get only the latest data entry for each tag number and acorn entry
 
 germ_rate_data_latest <-
@@ -250,64 +268,30 @@ germination_rate <-
   
 ```
 
-### Germination Rate for Acorns
+### Germination Rate for Acorns per microclimate
 
 ```{r}
-#germination rate NA to O value
+#germination rate per microclimate
+
+germ_OA_microclimate <-
 germination_rate |> 
-  mutate(
-    germination_rate$germ_rate[is.na(germination_rate$germ_rate)]<- 0
-  
-    
-#Organizing dead and germinated rate into bar graph for treatment types:
-
-#replacing NA values with "dead" 
-dead_germ_data<-
-  germination_rate|> 
-  mutate(
-    germ_rate = replace_na(as.character(germ_rate),"Dead"))
-
-#plotting the dead trees with the treatment as fill in bar graph
-dead_germ_treatment<-
-dead_germ_data |> 
-  ggplot(aes(germ_rate, fill= Treatment))+
-  geom_bar()
-plot(dead_germ_treatment)
-  
-#organizing dead and germinated rate of microclimate of OA treatment
-
-# first select only OA treatment, then plot germ rate with microclimate 
-
-OA_microclimate_germ<-
-  dead_germ_data |> 
-  drop_na(OA_microclimate) |> 
-  ggplot(aes(germ_rate, fill= OA_microclimate))+
-  geom_bar()
-plot(OA_microclimate_germ)
-
-#after seeing the results, did they put NA for microclimate if the treat was dead, if so why? we could still analyze what that data means
-
-#plotting open area trees that are all over 0cm, this one does not work for some dumb reason
-OA_Death_Microclimate<-
-dead_germ_data |> 
-  filter(Treatment == "OA") |> 
-  ggplot(aes(fill= OA_microclimate))+
-  geom_bar()
-
+  group_by(OA_microclimate) |> 
+  summarise(n=n(), germ_microclimate= mean(germ_rate)) |> 
+  filter(!is.na(germ_microclimate))
 
 ```
 
-### Germination Rate and Micro-climate data exploration
+### Acorn Germination Rate by Microclimate
 
 ```{r}
-#looking at germination rate trends in a bar graph? helpful? idek. This is acorns only, when fill=Oak_type only Acorn present
-germination_rate |> 
-ggplot(aes(germ_rate, fill = Treatment)) +
-  geom_bar()
 
-#looking at germination rate trends in a bar graph? helpful? idek. acorns only, where fill is the germinations rate and they are separated by treatment type
-gr_height<- 
-  ggplot(germination_rate, aes(x= germ_rate, y= Seedling_Ht_cm))+
-           geom_point()
-plot(gr_height)
+microclimate <- 
+  ggplot(germ_OA_microclimate) + 
+  aes(x = OA_microclimate, y = germ_microclimate,fill= OA_microclimate) + 
+  labs(title= "Acorn Germination Rate by Microclimate", x= "Microclimate", y= "Average Germination Rate %" )+
+  scale_fill_discrete(
+    labels = c("CN"="Control", "TH"= "Thatch Removed", "TI"= "Thatch and Invasive Species Removed"))+
+  geom_col()
+
+plot(microclimate)
 ```
