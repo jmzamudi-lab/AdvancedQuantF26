@@ -295,3 +295,62 @@ microclimate <-
 
 plot(microclimate)
 ```
+
+### Testing for Normality
+
+```{r}
+#using the shapiro wilks test to test for normality of mean germ rate of each microclimate (although it says germ_microclimate it is the mean germ rate)
+
+shapiro.test(germ_OA_microclimate$germ_microclimate)
+
+#p-value is < 0.05, W=0.75, not normally distributed omfg i hate my life, of course it's not normal 
+
+#yup not normal AT ALL, gotta tranform this bih
+
+qqnorm(germ_OA_microclimate$germ_microclimate)
+
+#just trying something that is allegedly "okay for departures of normality"
+#fligner.test(germ_microclimate ~ OA_microclimate, data = germ_OA_microclimate)
+#result is HOH, doesn't work 
+
+
+```
+
+### Transforming Data
+
+```{r}
+#log transforming data to see wtf happens
+log_meangerm_microclimate<-
+log(germ_OA_microclimate$germ_microclimate)
+
+#visually looking at log tranformed data
+qqnorm(log_meangerm_microclimate, main = "Q-Q Plot after Log Transformation")
+qqline(log_meangerm_microclimate, col = "red") # Adds a reference line
+
+#log transformed does not work
+shapiro.test(log_meangerm_microclimate)
+
+#sqrt transform data? spoiler alert, the answer is no.
+
+sqrt_meangerm_microclimate<-
+  sqrt(germ_OA_microclimate$germ_microclimate)
+
+#visually looking at sqrt tranformed data
+qqnorm(sqrt_meangerm_microclimate, main = "Q-Q Plot after Log Transformation")
+qqline(sqrt_meangerm_microclimate, col = "red") # Adds a reference line
+
+#sqrt transformed does not work
+shapiro.test(sqrt_meangerm_microclimate)
+
+#dude do i just give up??? sqaured is a naur
+squared_meangerm_microclimate<-
+(germ_OA_microclimate$germ_microclimate)^2
+
+shapiro.test(squared_meangerm_microclimate)
+
+#exp transformation 
+exp_meangerm_microclimate<-
+  exp(germ_OA_microclimate$germ_microclimate)
+
+shapiro.test(exp_meangerm_microclimate)
+```
