@@ -49,10 +49,10 @@ library(vegan)
 We might have information about a community in a single sample. This dataframe has a lot of information about the taxa present in the sample, as well as counts of each taxon.
 
 ```{r}
-Freshies <- read.csv(file = "Demo Data Files/Freshwater_Invertebrates.csv")
+Freshies <- read.csv(file = "Freshwater_Invertebrates.csv")
 
 glimpse(Freshies)
-load("Demo Data Files/S4E2e.RData")
+load("S4E2e.RData")
 ```
 
 You might instead have no abundance information at all, but have information about multiple samples. These data give vascular plant species names for samples from 10 sites from a survey in Shropshire, UK.
@@ -131,6 +131,8 @@ Freshies |> nrow()
 
 ```{r}
 ps |> colSums()
+
+
 ```
 
 ```{r}
@@ -141,7 +143,7 @@ plrich |>
 
 ```{r}
 psa |> 
-  pivot_longer(names_to = "Site", values_to = "Abund", cols = 2:ncol(psa)) |> 
+  pivot_longer(names_to = "Site", values_to = "Abund", cols = 1:ncol(psa)) |> 
   filter(Abund > 0) |> 
   group_by(Site) |> 
   count()
@@ -185,7 +187,6 @@ What if we have many samples that we want to calculate, so we can compare? We ca
 ```{r}
 diversity(psa, index = "shannon", MARGIN = 2)
 
-library(vegan)
 diversity(psa, index = "simpson", MARGIN = 2)
 
 ```
@@ -199,8 +200,9 @@ sprich <- ps |> colSums()
 
 vec <- colnames(ps)
 
-bind_cols(vec,shan_div, simp_div,sprich) |> 
-  rename(Site = `...1`, Shannon = `...2`, Simpson = `...3`, SpRich = `...4`) |>   separate(Site, into = c("Null","site", "UpperLower", "Rep"), sep = "")
+tibble(vec,shan_div, simp_div,sprich) |> 
+  separate(vec, into = c("Null","site", "UpperLower", "Rep"), sep = "")
+#  rename(Site = `...1`, Shannon = `...2`, Simpson = `...3`, SpRich = `...4`)  
 ```
 
 ## Similarity Indices
